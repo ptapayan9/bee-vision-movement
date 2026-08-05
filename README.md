@@ -2,6 +2,15 @@
 
 Video analysis and movement tracking for studying how bees see the world.
 
+## Project goal
+
+Create a real-time, bee-inspired camera experience that transforms a person
+entering the frame into a recognizable body silhouette made from many small,
+bright dots against a dark background.
+
+See [goals.md](goals.md) for the milestone-based implementation roadmap and
+current project handoff.
+
 ## Local development
 
 ### Prerequisites
