@@ -4,15 +4,17 @@ This is the canonical build plan for the project. Read this file at the start
 of a new session, work on the first incomplete milestone, and update its
 checkboxes only after the acceptance checks pass.
 
-Last reviewed: 2026-08-01
+Last reviewed: 2026-08-08
 
 ## Current handoff
 
-- Current milestone: Milestone 1 — reliable live camera preview.
-- Next task: finish hardware-free unit tests for camera failure, successful
-  preview exit, and frame-read failure.
-- Current blocker: none. Live camera preview is manually confirmed; the
-  remaining Milestone 1 acceptance checks still need to be recorded.
+- Current milestone: Milestone 2 — person-mask prototype.
+- Next task: integrate the pretrained MediaPipe SelfieSegmenter (landscape)
+  alongside the MOG2 prototype while preserving the existing
+  `apply(frame) -> mask` contract.
+- Current blocker: none. Live testing proved that MOG2 detects a moving person
+  but gradually absorbs a motionless person into the background, so the
+  pretrained person-segmentation objective is now approved.
 - Collaboration rule: the user writes all implementation and test code. Codex
   should guide, explain, review, and suggest verification commands. Codex may
   edit roadmap or documentation files only when explicitly requested.
@@ -22,6 +24,8 @@ Last reviewed: 2026-08-01
 Create a real-time, bee-inspired camera experience. When a person enters the
 camera frame, the normal image is transformed into a recognizable body
 silhouette composed of many small, bright dots against a dark background.
+The person mask must be based on semantic person recognition so the silhouette
+remains visible when the person stops moving.
 
 The first release is an artistic effect inspired by the supplied visual
 reference. It is not intended to be a scientifically exact simulation of how
@@ -111,15 +115,16 @@ adding image-processing complexity.
 - [x] Read and display frames continuously.
 - [x] Allow the user to quit with a simple key such as `q`.
 - [x] Release the camera and destroy preview windows on every exit path.
-- [ ] Try camera indices `1` and `2` if index `0` is not the intended camera.
-- [ ] Confirm macOS camera permission for the terminal or IDE being used.
+- [x] Confirm camera index `0` is the intended camera; indices `1` and `2` were
+  not needed.
+- [x] Confirm macOS camera permission for the terminal or IDE being used.
 
 Acceptance checks:
 
-- [ ] A live, unfrozen preview opens from the development environment.
-- [ ] Closing the preview releases the camera so it can immediately reopen.
-- [ ] Camera-open and frame-read failures produce understandable errors.
-- [ ] CI and unit tests do not require physical camera hardware.
+- [x] A live, unfrozen preview opens from the development environment.
+- [x] Closing the preview releases the camera so it can immediately reopen.
+- [x] Camera-open and frame-read failures produce understandable errors.
+- [x] CI and unit tests do not require physical camera hardware.
 
 Do not change the CLI or begin segmentation until this milestone works.
 
@@ -128,29 +133,51 @@ Do not change the CLI or begin segmentation until this milestone works.
 Purpose: reduce each frame to a binary decision: person/foreground or
 background.
 
-- [ ] Start with OpenCV foreground subtraction because the first setup uses a
+- [x] Start with OpenCV foreground subtraction because the first setup uses a
   stationary camera and a person entering the scene.
-- [ ] Put mask creation and cleanup in `vision/segmentation.py`.
-- [ ] Learn and use NumPy frame properties such as array shape, dimensions,
+- [x] Put mask creation and cleanup in `vision/segmentation.py`.
+- [x] Learn and use NumPy frame properties such as array shape, dimensions,
   data type, slicing, boolean masks, and vectorized operations.
-- [ ] Remove small isolated noise with minimal mask cleanup.
+- [x] Remove small isolated noise with minimal mask cleanup.
 - [ ] Test the mask against a short repeatable video, not only the live camera.
-- [ ] Keep segmentation separate from display and camera handling.
+- [x] Keep segmentation separate from display and camera handling.
 
 Acceptance checks:
 
 - [ ] The person is mostly white in the mask and the background is mostly black.
-- [ ] The mask has the same width and height as the source frame.
-- [ ] A unit test verifies the mask is a NumPy array with the expected shape,
+- [x] The mask has the same width and height as the source frame.
+- [x] A unit test verifies the mask is a NumPy array with the expected shape,
   data type, and value range.
 - [ ] A saved test clip produces repeatable results.
 
 Decision gate:
 
-- If foreground subtraction loses a person who stands still, reacts badly to
-  shadows, or fails with background movement, replace only the segmentation
-  stage with a pretrained person-segmentation model. Do not introduce a model
-  until the simpler method has been measured.
+- [x] Decision reached on 2026-08-08: MOG2 gradually loses a person who stands
+  still and produces some background speckles. Replace only the segmentation
+  stage with a pretrained person-segmentation model. Keep the working MOG2
+  prototype until its replacement passes automated and live checks.
+
+#### Pretrained person-segmentation objective
+
+- [ ] Add MediaPipe as a direct runtime dependency and obtain the official
+  SelfieSegmenter landscape model from its documented source.
+- [ ] Add a person segmenter alongside the MOG2 prototype rather than deleting
+  working behavior first.
+- [ ] Preserve the existing `apply(frame) -> mask` interface so camera capture
+  and pipeline orchestration do not need redesigning.
+- [ ] Convert OpenCV BGR input to the model's RGB input format.
+- [ ] Convert the model's background/person categories into a binary NumPy mask
+  containing only `0` and `255`.
+- [ ] Add hardware-free unit tests for model input conversion, output shape,
+  data type, value range, and cleanup behavior.
+- [ ] Switch the live pipeline to the pretrained segmenter only after its tests
+  pass.
+- [ ] Verify that a person remains visible while standing still for at least 20
+  seconds and record the observed background noise.
+- [ ] Measure live frame rate before deciding whether model or frame-size
+  optimization is necessary.
+- [ ] Remove or retain the MOG2 prototype only after the replacement is
+  verified.
 
 ### Milestone 3 — stable dotted-silhouette renderer
 
@@ -386,6 +413,7 @@ At the end of a milestone:
 | 2026-08-01 | Build one local frame-processing pipeline. | It is the smallest architecture that satisfies the current goal. |
 | 2026-08-01 | Prove camera capture before segmentation or rendering. | It isolates hardware and permission problems from image-processing problems. |
 | 2026-08-01 | Start segmentation with a stationary-camera foreground mask. | It avoids a model dependency until real results justify one. |
+| 2026-08-08 | Replace MOG2 in the product pipeline with pretrained person segmentation after the replacement is verified. | Live testing showed that MOG2 detects motion but gradually loses a person who stands still. |
 | 2026-08-01 | Use stable dot sampling. | Independent random points each frame would create distracting flicker. |
 | 2026-08-01 | Use NumPy in segmentation and dot rendering. | OpenCV frames are already arrays, so NumPy directly supports required image operations. |
 | 2026-08-01 | Gate pandas and Matplotlib behind offline metrics. | They provide useful tabular analysis and diagnostics without adding work to the real-time frame loop. |

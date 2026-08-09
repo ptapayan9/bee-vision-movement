@@ -2,9 +2,34 @@
 
 from unittest.mock import Mock, call, patch
 
+import numpy as np
 import pytest  # pylint: disable=import-error
 
 from bvm.capture.camera import show_camera
+
+
+def test_show_camera_displays_processed_frames() -> None:
+    """Verify that the preview displays the frame processer's results"""
+    camera_connection = Mock()
+    camera_connection.isOpened.return_value = True
+
+    frame = np.zeros((4, 6, 3), dtype=np.uint8)
+    processed_frame = np.zeros((4, 6), dtype=np.uint8)
+    camera_connection.read.return_value = (True, frame)
+
+    frame_processor = Mock(return_value=processed_frame)
+
+    with (
+        patch("bvm.capture.camera.cv2.VideoCapture", return_value=camera_connection),
+        patch("bvm.capture.camera.cv2.imshow") as imshow,
+        patch("bvm.capture.camera.cv2.waitKey", return_value=ord("q")),
+        patch("bvm.capture.camera.cv2.destroyAllWindows"),
+    ):
+        show_camera(0, frame_processor=frame_processor)
+
+    frame_processor.assert_called_once_with(frame)
+    imshow.assert_called_once_with("bvm", processed_frame)
+    camera_connection.release.assert_called_once_with()
 
 
 def test_show_camera_rejects_unavailable_camera() -> None:
@@ -18,7 +43,10 @@ def test_show_camera_rejects_unavailable_camera() -> None:
             return_value=camera_connection,
         ) as video_capture,
         patch("bvm.capture.camera.cv2.destroyAllWindows") as destroy_all_windows,
-        pytest.raises(RuntimeError, match="7"),
+        pytest.raises(
+            RuntimeError,
+            match=r"^unable to open camera: 7$",
+        ),
     ):
         show_camera(7)
 
@@ -85,7 +113,7 @@ def test_show_camera_rejects_failed_frame_read() -> None:
         patch("bvm.capture.camera.cv2.waitKey") as wait_key,
         patch("bvm.capture.camera.cv2.destroyAllWindows") as destroy_all_windows,
         pytest.raises(
-            RuntimeError, match="camera: 4"
+            RuntimeError, match=r"^unable to capture frame from camera: 4$"
         ),  # this states the failure is expected behavior
     ):
         show_camera(4)
