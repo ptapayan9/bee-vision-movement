@@ -1,4 +1,3 @@
-from bvm.capture import camera
 from bvm.capture.camera import show_camera
 from bvm.vision.segmentation import ForegroundSegmenter
 
