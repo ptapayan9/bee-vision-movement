@@ -4,17 +4,23 @@ This is the canonical build plan for the project. Read this file at the start
 of a new session, work on the first incomplete milestone, and update its
 checkboxes only after the acceptance checks pass.
 
-Last reviewed: 2026-08-08
+Last reviewed: 2026-08-13
 
 ## Current handoff
 
 - Current milestone: Milestone 2 — person-mask prototype.
-- Next task: integrate the pretrained MediaPipe SelfieSegmenter (landscape)
-  alongside the MOG2 prototype while preserving the existing
-  `apply(frame) -> mask` contract.
+- Next task: add and test a pure confidence-to-binary-mask helper, then connect
+  it and the tested BGR-to-RGB conversion helper inside
+  `PersonSegmenter.apply(frame)`.
 - Current blocker: none. Live testing proved that MOG2 detects a moving person
   but gradually absorbs a motionless person into the background, so the
   pretrained person-segmentation objective is now approved.
+- Checkpoint: MediaPipe 1.0.0 is a direct dependency; the official 244 KB
+  SelfieSegmenter landscape model is stored under `src/bvm/models` and loads
+  successfully. `PersonSegmenter` initializes the model alongside the existing
+  `ForegroundSegmenter`. The BGR-to-RGB helper has a passing unit test, but
+  `PersonSegmenter.apply(frame)` and confidence-mask conversion are not yet
+  implemented. The existing segmentation tests and Pyright pass.
 - Collaboration rule: the user writes all implementation and test code. Codex
   should guide, explain, review, and suggest verification commands. Codex may
   edit roadmap or documentation files only when explicitly requested.
@@ -159,7 +165,7 @@ Decision gate:
 
 #### Pretrained person-segmentation objective
 
-- [ ] Add MediaPipe as a direct runtime dependency and obtain the official
+- [x] Add MediaPipe as a direct runtime dependency and obtain the official
   SelfieSegmenter landscape model from its documented source.
 - [ ] Add a person segmenter alongside the MOG2 prototype rather than deleting
   working behavior first.
